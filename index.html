@@ -12,6 +12,10 @@
         /* 使用 Inter 字体作为 UI 字体，思源宋体作为内容字体 */
         body {
             font-family: 'Inter', sans-serif;
+            /* 深空渐变背景 */
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            height: 100vh;
+            overflow: hidden; /* 隐藏滚动条，防止星星溢出 */
         }
         .prompt-text {
             font-family: 'Noto Serif SC', serif;
@@ -34,6 +38,7 @@
         /* 按钮的极光效果 */
         .aurora-button {
             position: relative;
+            z-index: 10;
             overflow: hidden;
             background: linear-gradient(125deg, #1e3a8a, #3b82f6, #9333ea);
             background-size: 200% 200%;
@@ -44,12 +49,46 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+        
+        /* 流星效果 */
+        .shooting-star {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(-45deg, rgba(147, 197, 253, 1), rgba(0, 0, 255, 0));
+            border-radius: 999px;
+            filter: drop-shadow(0 0 6px rgba(147, 197, 253, 0.5));
+            animation: tail 3s ease-in-out infinite, shooting 3s ease-in-out infinite;
+        }
+
+        @keyframes tail {
+            0% {
+                width: 0;
+            }
+            30% {
+                width: 100px;
+            }
+            100% {
+                width: 0;
+            }
+        }
+
+        @keyframes shooting {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(300px);
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 flex flex-col justify-center items-center h-screen p-4 overflow-hidden">
+<body class="bg-gray-900 text-gray-200 flex flex-col justify-center items-center h-screen p-4">
+
+    <!-- 流星背景容器 -->
+    <div id="stars-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
 
     <!-- 主内容容器 -->
-    <div class="text-center max-w-2xl w-full">
+    <div class="text-center max-w-2xl w-full z-10">
         
         <header class="mb-12">
             <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">随机漫步的灵感引擎</h1>
@@ -71,9 +110,15 @@
         </footer>
 
     </div>
+    
+    <!-- 底部签名 -->
+    <footer class="absolute bottom-5 text-xs text-gray-500 z-10">
+        design by Rainman
+    </footer>
+
 
     <script>
-        // 预设的灵感库
+        // --- 静态数据 ---
         const prompts = [
             { category: '技术沉思', text: '如果一个 Bug 有了自我意识，它的首要任务会是什么？' },
             { category: '技术沉思', text: '描述一种无法用现有编程范式实现的“第五种”编程范式。' },
@@ -93,15 +138,16 @@
             { category: '生活禅', text: '描述一个你反复做的梦。如果它是一个隐喻，它在告诉你什么？' },
         ];
 
-        // 获取 DOM 元素
+        // --- DOM 元素获取 ---
         const generateBtn = document.getElementById('generate-btn');
         const promptText = document.getElementById('prompt-text');
-        const promptContainer = document.getElementById('prompt-container');
+        const starsContainer = document.getElementById('stars-container');
         let lastPromptIndex = -1;
+
+        // --- 核心功能 ---
 
         // 生成新灵感的函数
         function generatePrompt() {
-            // 确保新灵感与上一个不同
             let randomIndex;
             do {
                 randomIndex = Math.floor(Math.random() * prompts.length);
@@ -110,24 +156,48 @@
             lastPromptIndex = randomIndex;
             const newPrompt = prompts[randomIndex];
 
-            // 添加淡出效果
+            // UI 更新
             promptText.classList.remove('fade-in');
             promptText.classList.add('fade-out');
 
-            // 在动画结束时更新文本并添加入场效果
             setTimeout(() => {
                 promptText.textContent = newPrompt.text;
                 promptText.classList.remove('fade-out');
                 promptText.classList.add('fade-in');
-            }, 500); // 等待时间应与 CSS 动画时间匹配
+            }, 500);
         }
+
+        // --- 背景效果 ---
+
+        // 创建流星
+        function createStars() {
+            const starCount = 15; // 屏幕上流星的数量
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('shooting-star');
+                
+                // 随机化流星的初始位置、大小和动画
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                const randomDuration = 2 + Math.random() * 3; // 2s to 5s
+                const randomDelay = Math.random() * 5; // 0s to 5s
+                
+                star.style.animationDuration = `${randomDuration}s, ${randomDuration}s`;
+                star.style.animationDelay = `${randomDelay}s, ${randomDelay}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // --- 事件监听与初始化 ---
 
         // 为按钮添加点击事件监听器
         generateBtn.addEventListener('click', generatePrompt);
 
-        // 页面加载时，给初始文本一个入场动画
+        // 页面加载时执行
         window.addEventListener('load', () => {
              promptText.classList.add('fade-in');
+             createStars(); // 创建流星背景
         });
     </script>
 
