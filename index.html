@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机漫步的灵感引擎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* 使用 Inter 字体作为 UI 字体，思源宋体作为内容字体 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .prompt-text {
+            font-family: 'Noto Serif SC', serif;
+        }
+        /* 自定义过渡效果 */
+        .fade-in {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        .fade-out {
+            animation: fadeOut 0.8s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        /* 按钮的极光效果 */
+        .aurora-button {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(125deg, #1e3a8a, #3b82f6, #9333ea);
+            background-size: 200% 200%;
+            animation: aurora-animation 5s ease infinite;
+        }
+        @keyframes aurora-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col justify-center items-center h-screen p-4 overflow-hidden">
+
+    <!-- 主内容容器 -->
+    <div class="text-center max-w-2xl w-full">
+        
+        <header class="mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">随机漫步的灵感引擎</h1>
+            <p class="text-base text-gray-400">From Chaos to Clarity</p>
+        </header>
+
+        <!-- 灵感显示区域 -->
+        <main class="h-48 flex items-center justify-center mb-12">
+            <div id="prompt-container" class="w-full">
+                <p id="prompt-text" class="prompt-text text-xl md:text-2xl lg:text-3xl leading-relaxed text-gray-100">点击按钮，开始一次思维冒险。</p>
+            </div>
+        </main>
+
+        <!-- 控制按钮 -->
+        <footer>
+            <button id="generate-btn" class="aurora-button text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-transform duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300/50">
+                寻找下一个 Alpha Moment
+            </button>
+        </footer>
+
+    </div>
+
+    <script>
+        // 预设的灵感库
+        const prompts = [
+            { category: '技术沉思', text: '如果一个 Bug 有了自我意识，它的首要任务会是什么？' },
+            { category: '技术沉思', text: '描述一种无法用现有编程范式实现的“第五种”编程范式。' },
+            { category: '技术沉思', text: '一个系统最危险的“信任”是什么？是对人的信任，还是对代码的信任？' },
+            { category: '技术沉思', text: '如果用写诗的方式来写代码的注释，会是什么样子？' },
+            { category: '行者之问', text: '你上次旅行中，哪个瞬间让你觉得自己像本地人，而不是游客？' },
+            { category: '行者之问', text: '如果只能带三样东西去一个未知星球，你会带什么？（不考虑生存必需品）' },
+            { category: '行者之问', text: '描述一种你只在旅途中闻到过的，无法忘怀的气味。' },
+            { category: '行者之问', text: '“读万卷书”和“行万里路”，哪个更能让你接近世界的真实？' },
+            { category: '系统之辩', text: '“连续且不可控”与“离散且可控”，哪个更接近宇宙的本质？' },
+            { category: '系统之辩', text: '一个完美的系统，是应该消除所有意外，还是应该优雅地拥抱意外？' },
+            { category: '系统之辩', text: '如果让你为“熵增定律”设计一个补偿或重试策略，会是什么？' },
+            { category: '系统之辩', text: '“降维打击”的代价是什么？我们在简化复杂性的同时，丢失了什么重要的东西？' },
+            { category: '生活禅', text: '丢掉一件你很久没用但舍不得扔的东西，然后描述你的感受。' },
+            { category: '生活禅', text: '你上一次感到“心流”是什么时候？在做什么？' },
+            { category: '生活禅', text: '如果你的记忆可以像文件一样被编辑，你会删除哪一段？' },
+            { category: '生活禅', text: '描述一个你反复做的梦。如果它是一个隐喻，它在告诉你什么？' },
+        ];
+
+        // 获取 DOM 元素
+        const generateBtn = document.getElementById('generate-btn');
+        const promptText = document.getElementById('prompt-text');
+        const promptContainer = document.getElementById('prompt-container');
+        let lastPromptIndex = -1;
+
+        // 生成新灵感的函数
+        function generatePrompt() {
+            // 确保新灵感与上一个不同
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * prompts.length);
+            } while (prompts.length > 1 && randomIndex === lastPromptIndex);
+            
+            lastPromptIndex = randomIndex;
+            const newPrompt = prompts[randomIndex];
+
+            // 添加淡出效果
+            promptText.classList.remove('fade-in');
+            promptText.classList.add('fade-out');
+
+            // 在动画结束时更新文本并添加入场效果
+            setTimeout(() => {
+                promptText.textContent = newPrompt.text;
+                promptText.classList.remove('fade-out');
+                promptText.classList.add('fade-in');
+            }, 500); // 等待时间应与 CSS 动画时间匹配
+        }
+
+        // 为按钮添加点击事件监听器
+        generateBtn.addEventListener('click', generatePrompt);
+
+        // 页面加载时，给初始文本一个入场动画
+        window.addEventListener('load', () => {
+             promptText.classList.add('fade-in');
+        });
+    </script>
+
+</body>
+</html>
